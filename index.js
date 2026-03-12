@@ -1,11 +1,66 @@
 // Lorebook Profiles Extension for SillyTavern
 // Allows saving and activating profiles of lorebook configurations
 
+import { executeSlashCommands } from '../../../slash-commands.js';
+
 const MODULE_NAME = 'lorebook_profiles';
 
 // Get SillyTavern API
 const context = SillyTavern.getContext();
 const { extensionSettings, saveSettingsDebounced, eventSource, event_types } = context;
+/**
+ * Activate a profile by name using /world slash commands
+ */
+async function activateProfileByName(profileName) {
+    // Get extensionSettings from SillyTavern context at call time
+    const { extensionSettings: ctxExtensionSettings } = SillyTavern.getContext();
+    
+    const profile = ctxExtensionSettings['lorebook_profiles'].profiles[profileName];
+    
+    if (!profile) {
+        alert(`Profile "${profileName}" not found`);
+        return;
+    }
+    
+    try {
+        // First, deactivate all lorebooks
+        await executeSlashCommands('/world silent=true {{newline}}');
+        
+        // Get all available lorebooks to match IDs with names
+        const sel = document.querySelector('#world_editor_select');
+        
+        if (!sel) {
+            alert('Could not access World Info dropdown. Please open the World Info panel first.');
+            return;
+        }
+        
+        // Create a map of option values to text content
+        const lorebookMap = new Map();
+        Array.from(sel.children).forEach(option => {
+            lorebookMap.set(option.value, option.textContent);
+        });
+        
+        // Activate each lorebook in the profile one by one
+        const lorebooksToActivate = profile.lorebooks || [];
+        
+        for (const lorebookId of lorebooksToActivate) {
+            // Get the lorebook name from the map
+            const lorebookName = lorebookMap.get(String(lorebookId));
+            
+            if (lorebookName) {
+                await executeSlashCommands(`/world silent=true ${lorebookName}`);
+            }
+        }
+        
+        // Refresh our UI to reflect the current state
+        refreshLorebookList();
+        
+        showToast(`Profile "${profileName}" activated with ${lorebooksToActivate.length} lorebook(s)`);
+    } catch (error) {
+        console.error('[Lorebook Profiles] Error activating profile:', error);
+        alert('Error activating profile: ' + error.message);
+    }
+}
 
 // Initialize settings if not exists
 if (!extensionSettings[MODULE_NAME]) {
@@ -95,59 +150,7 @@ function getActiveLorebooks() {
     const allLorebooks = getAvailableLorebooks();
     return allLorebooks.filter(lb => lb.enabled);
 }
-/**
- * Activate a profile by name using /world slash commands
- */
-async function activateProfileByName(profileName) {
-    // Get executeSlashCommands from SillyTavern context at call time
-    const { executeSlashCommands, extensionSettings: ctxExtensionSettings } = SillyTavern.getContext();
-    
-    const profile = ctxExtensionSettings['lorebook_profiles'].profiles[profileName];
-    
-    if (!profile) {
-        alert(`Profile "${profileName}" not found`);
-        return;
-    }
-    
-    try {
-        // First, deactivate all lorebooks
-        await executeSlashCommands('/world none');
-        
-        // Get all available lorebooks to match IDs with names
-        const sel = document.querySelector('#world_editor_select');
-        
-        if (!sel) {
-            alert('Could not access World Info dropdown. Please open the World Info panel first.');
-            return;
-        }
-        
-        // Create a map of option values to text content
-        const lorebookMap = new Map();
-        Array.from(sel.children).forEach(option => {
-            lorebookMap.set(option.value, option.textContent);
-        });
-        
-        // Activate each lorebook in the profile
-        const lorebooksToActivate = profile.lorebooks || [];
-        
-        for (const lorebookId of lorebooksToActivate) {
-            // Get the lorebook name from the map
-            const lorebookName = lorebookMap.get(String(lorebookId));
-            
-            if (lorebookName) {
-                await executeSlashCommands(`/world ${lorebookName}`);
-            }
-        }
-        
-        // Refresh our UI to reflect the current state
-        refreshLorebookList();
-        
-        showToast(`Profile "${profileName}" activated with ${lorebooksToActivate.length} lorebook(s)`);
-    } catch (error) {
-        console.error('[Lorebook Profiles] Error activating profile:', error);
-        alert('Error activating profile: ' + error.message);
-    }
-}
+
 /**
  * Refresh lorebook selection list
  */
