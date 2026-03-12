@@ -10,23 +10,28 @@ A SillyTavern extension that allows you to save and manage profiles of lorebook 
 - **Profile Management**: View, activate, and delete saved profiles
 - **Persistent Storage**: Profiles are saved using SillyTavern's built-in settings system
 
-  ## Installation
+## Installation
 
-  ### Using SillyTavern's Built-in Git Installer
+### Using SillyTavern's Built-in Git Installer
 
-  1. Upload this extension to a GitHub repository
-  2. Open SillyTavern
-  3. Navigate to **Settings** → **Extensions**
-  4. Click the **"Install Extension"** button
-  5. Paste the GitHub repository URL (e.g., `https://github.com/username/ST-Lorebooks-Extended`)
-  6. Click **Install** and wait for the installation to complete
-  7. The extension will appear in the Extensions tab immediately (no restart required!)
+1. Upload this extension to a GitHub repository
+2. Open SillyTavern
+3. Navigate to **Settings** → **Extensions**
+4. Click the **"Install Extension"** button
+5. Paste the GitHub repository URL (e.g., `https://github.com/username/ST-Lorebooks-Extended`)
+6. Click **Install** and wait for the installation to complete
+7. The extension will appear in the Extensions tab after enabling it
 
-  **Note:** Ensure the repository contains `manifest.json` and `index.js` at the root level.
+**Important:**
+- Ensure the repository contains `manifest.json`, `index.js`, and `style.css` at the root level (not in any subfolder)
+- The extension loads automatically when SillyTavern starts after installation
+- Enable the extension in the Extensions panel if needed
 
-### Dynamic Loading
-
-This extension supports dynamic loading, meaning it activates immediately after installation without requiring a SillyTavern restart.
+**Required Files:**
+- `manifest.json` - Extension metadata
+- `index.js` - Main extension logic
+- `style.css` - Extension styles (can be empty but must exist)
+- `README.md` - Documentation (optional but recommended)
 
 ## Usage
 

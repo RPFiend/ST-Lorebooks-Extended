@@ -1,0 +1,190 @@
+/* Styles for Lorebook Profiles Extension */
+
+.lorebook-profiles-extension {
+    padding: 16px;
+    font-family: var(--font-main, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+}
+
+.lp-header h3 {
+    margin: 0 0 8px 0;
+    color: var(--SmartThemeBodyColor);
+}
+
+.lp-description {
+    margin: 0 0 16px 0;
+    color: var(--SmartThemeEmColor);
+    font-size: 0.9em;
+}
+
+.lp-create-section,
+.lp-activate-section,
+.lp-saved-section {
+    margin-bottom: 20px;
+    padding: 12px;
+    background: var(--black30a);
+    border-radius: 8px;
+}
+
+.lp-create-section h4,
+.lp-activate-section h4,
+.lp-saved-section h4 {
+    margin: 0 0 12px 0;
+    color: var(--SmartThemeBodyColor);
+}
+
+.lp-create-inputs {
+    margin-bottom: 12px;
+}
+
+#lp-profile-name {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 4px;
+    background: var(--black20a);
+    color: var(--SmartThemeBodyColor);
+    box-sizing: border-box;
+    font-size: 14px;
+}
+
+#lp-profile-name:focus {
+    outline: none;
+    border-color: var(--SmartThemeAccentColor);
+}
+
+.lp-lorebook-list {
+    margin-bottom: 12px;
+}
+
+.lp-lorebook-list h5 {
+    margin: 0 0 8px 0;
+    color: var(--SmartThemeBodyColor);
+    font-size: 0.9em;
+}
+
+#lp-lorebook-items {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 4px;
+    padding: 8px;
+    background: var(--black20a);
+}
+
+.lp-lorebook-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.lp-lorebook-item:hover {
+    background: var(--black50a);
+}
+
+.lp-lorebook-item input[type="checkbox"] {
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+.lp-lorebook-item label {
+    cursor: pointer;
+    flex: 1;
+    color: var(--SmartThemeBodyColor);
+}
+
+.lp-activate-inputs {
+    display: flex;
+    gap: 8px;
+}
+
+#lp-profile-select {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 4px;
+    background: var(--black20a);
+    color: var(--SmartThemeBodyColor);
+    cursor: pointer;
+}
+
+.lp-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.lp-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.lp-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.lp-btn-primary {
+    background: var(--SmartThemeAccentColor);
+    color: var(--SmartThemeBodyColor);
+}
+
+.lp-btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.lp-btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+#lp-saved-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.lp-saved-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: var(--black20a);
+    border-radius: 4px;
+    border: 1px solid var(--SmartThemeBorderColor);
+}
+
+.lp-saved-item-name {
+    font-weight: 500;
+    color: var(--SmartThemeBodyColor);
+}
+
+.lp-saved-item-count {
+    color: var(--SmartThemeEmColor);
+    font-size: 0.85em;
+    margin-left: 8px;
+}
+
+.lp-saved-item-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.lp-saved-item-actions .lp-btn {
+    padding: 6px 12px;
+    font-size: 0.85em;
+}
+
+.lp-empty-state {
+    color: var(--SmartThemeEmColor);
+    font-style: italic;
+    padding: 12px;
+    text-align: center;
+}

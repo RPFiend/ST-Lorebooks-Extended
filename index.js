@@ -1,6 +1,10 @@
 // Lorebook Profiles Extension for SillyTavern
 // Allows saving and activating profiles of lorebook configurations
 
+import { saveSettingsDebounced } from "../../../../script.js";
+import { extension_settings } from "../../../extensions.js";
+import { getWorldInfoSettings } from "../../../world-info.js";
+
 const SETTINGS_KEY = 'LOREBOOK_PROFILES';
 
 // Settings structure
@@ -11,7 +15,7 @@ const settings = {
 // Profile data structure: { profileName: { lorebooks: [id1, id2, ...] } }
 
 /**
- * Get the HTML for the extension UI
+ * Get HTML for extension UI
  */
 function getUIHTML() {
     return `
@@ -51,173 +55,11 @@ function getUIHTML() {
                 <div id="lp-saved-list"></div>
             </div>
         </div>
-        
-        <style>
-            .lorebook-profiles-extension {
-                padding: 16px;
-                font-family: var(--font-main, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
-            }
-            .lp-header h3 {
-                margin: 0 0 8px 0;
-                color: var(--SmartThemeBodyColor);
-            }
-            .lp-description {
-                margin: 0 0 16px 0;
-                color: var(--SmartThemeEmColor);
-                font-size: 0.9em;
-            }
-            .lp-create-section,
-            .lp-activate-section,
-            .lp-saved-section {
-                margin-bottom: 20px;
-                padding: 12px;
-                background: var(--black30a);
-                border-radius: 8px;
-            }
-            .lp-create-section h4,
-            .lp-activate-section h4,
-            .lp-saved-section h4 {
-                margin: 0 0 12px 0;
-                color: var(--SmartThemeBodyColor);
-            }
-            .lp-create-inputs {
-                margin-bottom: 12px;
-            }
-            #lp-profile-name {
-                width: 100%;
-                padding: 8px 12px;
-                border: 1px solid var(--SmartThemeBorderColor);
-                border-radius: 4px;
-                background: var(--black20a);
-                color: var(--SmartThemeBodyColor);
-                box-sizing: border-box;
-                font-size: 14px;
-            }
-            #lp-profile-name:focus {
-                outline: none;
-                border-color: var(--SmartThemeAccentColor);
-            }
-            .lp-lorebook-list {
-                margin-bottom: 12px;
-            }
-            .lp-lorebook-list h5 {
-                margin: 0 0 8px 0;
-                color: var(--SmartThemeBodyColor);
-                font-size: 0.9em;
-            }
-            #lp-lorebook-items {
-                max-height: 200px;
-                overflow-y: auto;
-                border: 1px solid var(--SmartThemeBorderColor);
-                border-radius: 4px;
-                padding: 8px;
-                background: var(--black20a);
-            }
-            .lp-lorebook-item {
-                display: flex;
-                align-items: center;
-                padding: 6px 8px;
-                border-radius: 4px;
-                cursor: pointer;
-                transition: background 0.2s;
-            }
-            .lp-lorebook-item:hover {
-                background: var(--black50a);
-            }
-            .lp-lorebook-item input[type="checkbox"] {
-                margin-right: 8px;
-                cursor: pointer;
-            }
-            .lp-lorebook-item label {
-                cursor: pointer;
-                flex: 1;
-                color: var(--SmartThemeBodyColor);
-            }
-            .lp-activate-inputs {
-                display: flex;
-                gap: 8px;
-            }
-            #lp-profile-select {
-                flex: 1;
-                padding: 8px 12px;
-                border: 1px solid var(--SmartThemeBorderColor);
-                border-radius: 4px;
-                background: var(--black20a);
-                color: var(--SmartThemeBodyColor);
-                cursor: pointer;
-            }
-            .lp-btn {
-                padding: 8px 16px;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                font-weight: 500;
-                transition: all 0.2s;
-            }
-            .lp-btn:hover {
-                opacity: 0.9;
-                transform: translateY(-1px);
-            }
-            .lp-btn:disabled {
-                opacity: 0.5;
-                cursor: not-allowed;
-                transform: none;
-            }
-            .lp-btn-primary {
-                background: var(--SmartThemeAccentColor);
-                color: var(--SmartThemeBodyColor);
-            }
-            .lp-btn-success {
-                background: #28a745;
-                color: white;
-            }
-            .lp-btn-danger {
-                background: #dc3545;
-                color: white;
-            }
-            #lp-saved-list {
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-            }
-            .lp-saved-item {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 10px 12px;
-                background: var(--black20a);
-                border-radius: 4px;
-                border: 1px solid var(--SmartThemeBorderColor);
-            }
-            .lp-saved-item-name {
-                font-weight: 500;
-                color: var(--SmartThemeBodyColor);
-            }
-            .lp-saved-item-count {
-                color: var(--SmartThemeEmColor);
-                font-size: 0.85em;
-                margin-left: 8px;
-            }
-            .lp-saved-item-actions {
-                display: flex;
-                gap: 6px;
-            }
-            .lp-saved-item-actions .lp-btn {
-                padding: 6px 12px;
-                font-size: 0.85em;
-            }
-            .lp-empty-state {
-                color: var(--SmartThemeEmColor);
-                font-style: italic;
-                padding: 12px;
-                text-align: center;
-            }
-        </style>
     `;
 }
 
 /**
- * Render the extension UI in the Extensions tab
+ * Render extension UI in Extensions tab
  */
 function renderExtensionUI() {
     // Check if container already exists
@@ -226,11 +68,13 @@ function renderExtensionUI() {
         return;
     }
     
-    // Try to append to extensions_settings first (settings panel)
-    if (typeof $ !== 'undefined' && $('#extensions_settings').length) {
-        const container = $('<div id="lorebook-profiles-container"></div>');
-        container.html(getUIHTML());
-        $('#extensions_settings').append(container);
+    // Try to append to extensions_settings (settings panel)
+    const extensionsSettings = document.getElementById('extensions_settings');
+    if (extensionsSettings) {
+        const container = document.createElement('div');
+        container.id = 'lorebook-profiles-container';
+        container.innerHTML = getUIHTML();
+        extensionsSettings.appendChild(container);
         attachEventListeners();
         refreshUI();
         console.log('[Lorebook Profiles] Extension UI rendered in settings panel');
@@ -252,23 +96,27 @@ function renderExtensionUI() {
     
     // Watch for elements to appear
     const checkInterval = setInterval(() => {
-        if (typeof $ !== 'undefined' && $('#extensions_settings').length && !document.getElementById('lorebook-profiles-container')) {
-            clearInterval(checkInterval);
-            const container = $('<div id="lorebook-profiles-container"></div>');
-            container.html(getUIHTML());
-            $('#extensions_settings').append(container);
-            attachEventListeners();
-            refreshUI();
-            console.log('[Lorebook Profiles] Extension UI rendered via interval');
-        } else if (document.getElementById('extensions_content') && !document.getElementById('lorebook-profiles-container')) {
+        const extensionsSettings = document.getElementById('extensions_settings');
+        const extensionsContent = document.getElementById('extensions_content');
+        
+        if (extensionsSettings && !document.getElementById('lorebook-profiles-container')) {
             clearInterval(checkInterval);
             const container = document.createElement('div');
             container.id = 'lorebook-profiles-container';
             container.innerHTML = getUIHTML();
-            document.getElementById('extensions_content').appendChild(container);
+            extensionsSettings.appendChild(container);
             attachEventListeners();
             refreshUI();
-            console.log('[Lorebook Profiles] Extension UI rendered via interval (fallback)');
+            console.log('[Lorebook Profiles] Extension UI rendered via interval (settings)');
+        } else if (extensionsContent && !document.getElementById('lorebook-profiles-container')) {
+            clearInterval(checkInterval);
+            const container = document.createElement('div');
+            container.id = 'lorebook-profiles-container';
+            container.innerHTML = getUIHTML();
+            extensionsContent.appendChild(container);
+            attachEventListeners();
+            refreshUI();
+            console.log('[Lorebook Profiles] Extension UI rendered via interval (content)');
         }
     }, 100);
     
@@ -327,7 +175,7 @@ function refreshUI() {
 }
 
 /**
- * Refresh the lorebook selection list
+ * Refresh lorebook selection list
  */
 function refreshLorebookList() {
     const container = document.getElementById('lp-lorebook-items');
@@ -559,11 +407,6 @@ function loadSettings() {
  * Add settings UI to the settings panel
  */
 function addSettings() {
-    if (typeof $ === 'undefined') {
-        console.warn('[Lorebook Profiles] jQuery not available, cannot add settings panel');
-        return;
-    }
-    
     const settingsHtml = `
         <div class="lp--settings">
             <div class="inline-drawer">
@@ -581,7 +424,10 @@ function addSettings() {
         </div>
     `;
     
-    $('#extensions_settings').append(settingsHtml);
+    const extensionsSettings = document.getElementById('extensions_settings');
+    if (extensionsSettings) {
+        extensionsSettings.innerHTML += settingsHtml;
+    }
 }
 
 /**

@@ -4,8 +4,9 @@
     "requires": [],
     "optional": [],
     "js": "index.js",
-    "css": "",
+    "css": "style.css",
     "author": "RP|Fiend",
     "version": "1.0.0",
-    "homePage": ""
+    "homePage": "https://github.com/username/repo-name",
+    "auto_update": true
 }
