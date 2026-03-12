@@ -1,14 +1,13 @@
 // Lorebook Profiles Extension for SillyTavern
 // Allows saving and activating profiles of lorebook configurations
 
-import { saveSettingsDebounced } from "../../../../script.js";
-import { extension_settings } from "../../../extensions.js";
-import { getWorldInfoSettings } from "../../../world-info.js";
+import { getContext, addExtensionSettings, extension_settings, saveSettingsDebounced } from "../../../extensions.js";
 
 const SETTINGS_KEY = 'LOREBOOK_PROFILES';
+const extensionName = 'lorebook-profiles';
 
 // Settings structure
-const settings = {
+let settings = {
     profiles: {}
 };
 
@@ -25,7 +24,6 @@ function getUIHTML() {
                 <p class="lp-description">Save and manage lorebook configurations</p>
             </div>
             
-            <!-- Create New Profile Section -->
             <div class="lp-create-section">
                 <h4>Create New Profile</h4>
                 <div class="lp-create-inputs">
@@ -38,7 +36,6 @@ function getUIHTML() {
                 <button id="lp-save-profile" class="lp-btn lp-btn-primary">Save Profile</button>
             </div>
             
-            <!-- Activate Profile Section -->
             <div class="lp-activate-section">
                 <h4>Activate Profile</h4>
                 <div class="lp-activate-inputs">
@@ -49,7 +46,6 @@ function getUIHTML() {
                 </div>
             </div>
             
-            <!-- Saved Profiles Section -->
             <div class="lp-saved-section">
                 <h4>Saved Profiles</h4>
                 <div id="lp-saved-list"></div>
@@ -59,99 +55,14 @@ function getUIHTML() {
 }
 
 /**
- * Render extension UI in Extensions tab
- */
-function renderExtensionUI() {
-    // Check if container already exists
-    if (document.getElementById('lorebook-profiles-container')) {
-        refreshUI();
-        return;
-    }
-    
-    // Try to append to extensions_settings (settings panel)
-    const extensionsSettings = document.getElementById('extensions_settings');
-    if (extensionsSettings) {
-        const container = document.createElement('div');
-        container.id = 'lorebook-profiles-container';
-        container.innerHTML = getUIHTML();
-        extensionsSettings.appendChild(container);
-        attachEventListeners();
-        refreshUI();
-        console.log('[Lorebook Profiles] Extension UI rendered in settings panel');
-        return;
-    }
-    
-    // Fallback: Try extensions_content (main extensions tab)
-    const extensionsContent = document.getElementById('extensions_content');
-    if (extensionsContent) {
-        const container = document.createElement('div');
-        container.id = 'lorebook-profiles-container';
-        container.innerHTML = getUIHTML();
-        extensionsContent.appendChild(container);
-        attachEventListeners();
-        refreshUI();
-        console.log('[Lorebook Profiles] Extension UI rendered in extensions tab');
-        return;
-    }
-    
-    // Watch for elements to appear
-    const checkInterval = setInterval(() => {
-        const extensionsSettings = document.getElementById('extensions_settings');
-        const extensionsContent = document.getElementById('extensions_content');
-        
-        if (extensionsSettings && !document.getElementById('lorebook-profiles-container')) {
-            clearInterval(checkInterval);
-            const container = document.createElement('div');
-            container.id = 'lorebook-profiles-container';
-            container.innerHTML = getUIHTML();
-            extensionsSettings.appendChild(container);
-            attachEventListeners();
-            refreshUI();
-            console.log('[Lorebook Profiles] Extension UI rendered via interval (settings)');
-        } else if (extensionsContent && !document.getElementById('lorebook-profiles-container')) {
-            clearInterval(checkInterval);
-            const container = document.createElement('div');
-            container.id = 'lorebook-profiles-container';
-            container.innerHTML = getUIHTML();
-            extensionsContent.appendChild(container);
-            attachEventListeners();
-            refreshUI();
-            console.log('[Lorebook Profiles] Extension UI rendered via interval (content)');
-        }
-    }, 100);
-    
-    setTimeout(() => clearInterval(checkInterval), 5000);
-}
-
-/**
- * Attach event listeners to UI elements
- */
-function attachEventListeners() {
-    const saveButton = document.getElementById('lp-save-profile');
-    const activateButton = document.getElementById('lp-activate-profile');
-    const profileSelect = document.getElementById('lp-profile-select');
-    
-    if (saveButton) {
-        saveButton.addEventListener('click', saveProfile);
-    }
-    
-    if (activateButton) {
-        activateButton.addEventListener('click', activateProfile);
-    }
-}
-
-/**
  * Get all active lorebooks from SillyTavern
  */
 function getActiveLorebooks() {
     try {
-        // Try to get lorebooks from the character's world info
-        const characterId = this_chid;
-        if (!characterId) return [];
+        const context = getContext();
         
-        // Access the world info data structure
-        if (typeof world_info !== 'undefined' && world_info.entries) {
-            return Object.values(world_info.entries).map(entry => ({
+        if (context && context.worldInfo && context.worldInfo.entries) {
+            return Object.values(context.worldInfo.entries).map(entry => ({
                 id: entry.uid,
                 name: entry.name || `Lorebook Entry ${entry.uid}`,
                 enabled: entry.enabled
@@ -250,7 +161,6 @@ function refreshSavedProfiles() {
         `;
     }).join('');
     
-    // Attach event listeners to the new buttons
     container.querySelectorAll('.lp-activate-single').forEach(btn => {
         btn.addEventListener('click', () => activateProfileByName(btn.dataset.profile));
     });
@@ -278,26 +188,20 @@ function saveProfile() {
         }
     }
     
-    // Get selected lorebooks
     const checkboxes = document.querySelectorAll('#lp-lorebook-items input[type="checkbox"]:checked');
     const selectedLorebooks = Array.from(checkboxes).map(cb => parseInt(cb.value));
     
-    // Save the profile
     settings.profiles[profileName] = {
         lorebooks: selectedLorebooks,
         createdAt: Date.now()
     };
     
-    // Save settings
-    saveSettings();
+    saveExtensionSettings();
     
-    // Clear the name input
     nameInput.value = '';
     
-    // Refresh the UI
     refreshUI();
     
-    // Show success message
     showToast(`Profile "${profileName}" saved successfully`);
 }
 
@@ -328,29 +232,26 @@ function activateProfileByName(profileName) {
     }
     
     try {
-        // Get all current lorebook entries
-        if (typeof world_info !== 'undefined' && world_info.entries) {
-            const entries = Object.values(world_info.entries);
+        const context = getContext();
+        
+        if (context && context.worldInfo && context.worldInfo.entries) {
+            const entries = Object.values(context.worldInfo.entries);
             const selectedIds = new Set(profile.lorebooks || []);
             
-            // Update each lorebook entry
             entries.forEach(entry => {
                 const isSelected = selectedIds.has(entry.uid);
                 entry.enabled = isSelected;
                 
-                // Update the UI for this entry if it exists
                 const toggleElement = document.querySelector(`[data-uid="${entry.uid}"] .world_entry_activation_toggle`);
                 if (toggleElement) {
                     toggleElement.checked = isSelected;
                 }
             });
             
-            // Trigger a refresh of the world info display
             if (typeof eventSource !== 'undefined') {
                 eventSource.emit('refreshWorldInfo');
             }
             
-            // Refresh our UI to reflect the current state
             refreshLorebookList();
             
             showToast(`Profile "${profileName}" activated`);
@@ -373,10 +274,8 @@ function deleteProfile(profileName) {
     
     delete settings.profiles[profileName];
     
-    // Save settings
-    saveSettings();
+    saveExtensionSettings();
     
-    // Refresh the UI
     refreshUI();
     
     showToast(`Profile "${profileName}" deleted`);
@@ -385,7 +284,7 @@ function deleteProfile(profileName) {
 /**
  * Save settings
  */
-function saveSettings() {
+function saveExtensionSettings() {
     if (typeof extension_settings !== 'undefined') {
         extension_settings[SETTINGS_KEY] = settings;
         if (typeof saveSettingsDebounced === 'function') {
@@ -399,34 +298,23 @@ function saveSettings() {
  */
 function loadSettings() {
     if (typeof extension_settings !== 'undefined' && extension_settings[SETTINGS_KEY]) {
-        Object.assign(settings, extension_settings[SETTINGS_KEY]);
+        settings = { ...settings, ...extension_settings[SETTINGS_KEY] };
     }
 }
 
 /**
- * Add settings UI to the settings panel
+ * Attach event listeners to UI elements
  */
-function addSettings() {
-    const settingsHtml = `
-        <div class="lp--settings">
-            <div class="inline-drawer">
-                <div class="inline-drawer-toggle inline-drawer-header">
-                    <b>Lorebook Profiles</b>
-                    <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
-                </div>
-                <div class="inline-drawer-content">
-                    <div class="flex-container margin5">
-                        <p>Your profile data is automatically saved.</p>
-                        <p><strong>Total Profiles:</strong> <span id="lp-profile-count">${Object.keys(settings.profiles).length}</span></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
+function attachEventListeners() {
+    const saveButton = document.getElementById('lp-save-profile');
+    const activateButton = document.getElementById('lp-activate-profile');
     
-    const extensionsSettings = document.getElementById('extensions_settings');
-    if (extensionsSettings) {
-        extensionsSettings.innerHTML += settingsHtml;
+    if (saveButton) {
+        saveButton.addEventListener('click', saveProfile);
+    }
+    
+    if (activateButton) {
+        activateButton.addEventListener('click', activateProfile);
     }
 }
 
@@ -434,11 +322,9 @@ function addSettings() {
  * Show a toast notification
  */
 function showToast(message) {
-    // Check if toast function exists in SillyTavern
     if (typeof toastr !== 'undefined') {
         toastr.success(message);
     } else {
-        // Fallback: create a simple toast
         const toast = document.createElement('div');
         toast.style.cssText = `
             position: fixed;
@@ -471,20 +357,68 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Initialize extension when DOM is ready
-$(document).ready(function () {
-    console.log('[Lorebook Profiles] Extension loaded');
-    
+/**
+ * Render settings panel
+ */
+function renderSettings() {
     loadSettings();
-    addSettings();
     
-    // Render UI
-    renderExtensionUI();
+    const settingsHtml = `
+        <div class="lorebook-profiles-settings">
+            <div class="inline-drawer">
+                <div class="inline-drawer-toggle inline-drawer-header">
+                    <b>Lorebook Profiles</b>
+                    <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                </div>
+                <div class="inline-drawer-content">
+                    <div class="flex-container margin5">
+                        <p>Your profile data is automatically saved.</p>
+                        <p><strong>Total Profiles:</strong> <span id="lp-profile-count">${Object.keys(settings.profiles).length}</span></p>
+                        <div id="lorebook-profiles-main-ui"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
     
-    // Listen for world info changes
-    document.addEventListener('worldInfoUpdate', () => {
-        refreshLorebookList();
-    });
+    return settingsHtml;
+}
+
+/**
+ * Initialize extension UI after settings panel is rendered
+ */
+function initializeExtensionUI() {
+    const mainContainer = document.getElementById('lorebook-profiles-main-ui');
+    if (mainContainer) {
+        mainContainer.innerHTML = getUIHTML();
+        attachEventListeners();
+        refreshUI();
+    }
+}
+
+// Register extension with SillyTavern
+jQuery(async () => {
+    console.log('[Lorebook Profiles] Registering extension...');
     
-    console.log('[Lorebook Profiles] Extension initialized');
+    addExtensionSettings(extensionName, 'Lorebook Profiles', renderSettings);
+    
+    const checkInterval = setInterval(() => {
+        const extensionSettings = document.getElementById('lorebook-profiles-settings');
+        if (extensionSettings && !document.getElementById('lorebook-profiles-main-ui')) {
+            clearInterval(checkInterval);
+            console.log('[Lorebook Profiles] Extension settings found, initializing UI...');
+            initializeExtensionUI();
+        }
+    }, 100);
+    
+    setTimeout(() => clearInterval(checkInterval), 5000);
+    
+    setTimeout(() => {
+        if (!document.getElementById('lorebook-profiles-main-ui')) {
+            console.log('[Lorebook Profiles] Attempting immediate UI initialization...');
+            initializeExtensionUI();
+        }
+    }, 500);
+    
+    console.log('[Lorebook Profiles] Extension registered');
 });
