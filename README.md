@@ -10,24 +10,45 @@ A SillyTavern extension that allows you to save and manage profiles of lorebook 
 - **Profile Management**: View, activate, and delete saved profiles
 - **Persistent Storage**: Profiles are saved using SillyTavern's built-in settings system
 
-## Installation
+  ## Installation
 
-1. Navigate to your SillyTavern `extensions` folder
-2. Create a new folder named `st-lorebook-profiles`
-3. Copy the following files into this folder:
-   - `manifest.json`
-   - `index.js`
-4. Restart SillyTavern
-5. The extension will appear in the Extensions tab
+  ### Method 1: Using SillyTavern's Built-in Git Installer (Recommended)
 
-**Example path structure:**
-```
-SillyTavern/
-└── extensions/
-    └── st-lorebook-profiles/
-        ├── manifest.json
-        └── index.js
-```
+  1. Upload this extension to a GitHub repository
+  2. Open SillyTavern
+  3. Navigate to **Settings** → **Extensions**
+  4. Click the **"Install Extension"** button
+  5. Paste the GitHub repository URL (e.g., `https://github.com/username/st-lorebook-profiles`)
+  6. Click **Install** and wait for the installation to complete
+  7. The extension will appear in the Extensions tab immediately (no restart required!)
+
+  **Note:** Ensure the repository contains `manifest.json` and `index.js` at the root level.
+
+  ### Method 2: Manual Installation
+
+  1. Navigate to your SillyTavern `extensions` folder
+  2. Create a new folder named `st-lorebook-profiles`
+  3. Copy the following files into this folder:
+     - `manifest.json`
+     - `index.js`
+  4. Refresh SillyTavern or navigate to the Extensions tab (no restart needed)
+  5. The extension will appear in the Extensions tab
+
+  **Example path structure:**
+  ```
+  SillyTavern/
+  └── extensions/
+      └── st-lorebook-profiles/
+          ├── manifest.json
+          └── index.js
+  ```
+
+### Dynamic Loading
+
+This extension supports dynamic loading, meaning you can install or reload it **without restarting SillyTavern**. Simply:
+- Install via Git installer (it activates immediately)
+- Refresh the Extensions tab
+- Or use the browser console to run: `window.LorebookProfilesExtension.reload()`
 
 ## Usage
 

@@ -609,61 +609,120 @@ function escapeHtml(text) {
 
 // SillyTavern extension API hook
 // This is called when the extension is loaded
+// Supports both automatic loading and dynamic loading without restart
+
+// Global flag to track initialization
+window.LorebookProfilesExtension = window.LorebookProfilesExtension || {
+    initialized: false,
+    initExtension: null
+};
+
 (function lorebookProfilesExtension() {
     'use strict';
     
+    // Default settings
+    const defaultSettings = {
+        profiles: {}
+    };
+    
+    /**
+     * Main initialization function - can be called multiple times safely
+     */
+    function initialize() {
+        if (window.LorebookProfilesExtension.initialized) {
+            console.log('[Lorebook Profiles] Extension already initialized, refreshing...');
+            refreshUI();
+            return;
+        }
+        
+        console.log('[Lorebook Profiles] Starting initialization...');
+        
+        // The extensionSettings object is provided by SillyTavern
+        if (typeof extensionSettings !== 'undefined') {
+            extensionSettings.profiles = extensionSettings.profiles || defaultSettings.profiles;
+            window.LorebookProfilesExtension.settings = extensionSettings;
+        } else {
+            window.LorebookProfilesExtension.settings = defaultSettings;
+            extensionSettings = defaultSettings;
+        }
+        
+        // Initialize the extension
+        init();
+        
+        // Register the extension with SillyTavern's extension system
+        if (typeof registerExtension !== 'undefined') {
+            registerExtension(extensionName, {
+                displayName: 'Lorebook Profiles',
+                description: 'Save and manage lorebook profiles',
+                icon: 'fa-book',
+                settingsHtml: getSettingsHtml(),
+                onSettingsLoad: function(settings) {
+                    extensionSettings = settings || defaultSettings;
+                    window.LorebookProfilesExtension.settings = extensionSettings;
+                },
+                onSettingsSave: function(settings) {
+                    return extensionSettings;
+                }
+            });
+        }
+        
+        // Add the UI to the Extensions tab
+        const addUIInterval = setInterval(() => {
+            const extensionsContent = document.getElementById('extensions_content');
+            if (extensionsContent) {
+                clearInterval(addUIInterval);
+                renderExtensionUI();
+                window.LorebookProfilesExtension.initialized = true;
+                console.log('[Lorebook Profiles] Extension successfully initialized');
+            }
+        }, 100);
+        
+        // Stop checking after 5 seconds
+        setTimeout(() => clearInterval(addUIInterval), 5000);
+        
+        // Listen for world info changes
+        document.addEventListener('worldInfoUpdate', () => {
+            refreshLorebookList();
+        });
+    }
+    
+    // Store the init function for external access
+    window.LorebookProfilesExtension.initExtension = initialize;
+    
     // Wait for SillyTavern to be ready
     const initInterval = setInterval(() => {
-        if (typeof eventSource !== 'undefined' && typeof registerSlashCommand !== 'undefined') {
+        if (typeof eventSource !== 'undefined') {
             clearInterval(initInterval);
-            
-            // Initialize the extension
-            init();
-            
-            // Register settings with SillyTavern
-            const defaultSettings = {
-                profiles: {}
-            };
-            
-            // The extensionSettings object is provided by SillyTavern
-            if (typeof extensionSettings !== 'undefined') {
-                extensionSettings.profiles = extensionSettings.profiles || defaultSettings.profiles;
-            }
-            
-            // Register the extension with SillyTavern's extension system
-            if (typeof registerExtension !== 'undefined') {
-                registerExtension(extensionName, {
-                    displayName: 'Lorebook Profiles',
-                    description: 'Save and manage lorebook profiles',
-                    icon: 'fa-book',
-                    settingsHtml: getSettingsHtml(),
-                    onSettingsLoad: function(settings) {
-                        extensionSettings = settings || defaultSettings;
-                    },
-                    onSettingsSave: function(settings) {
-                        return extensionSettings;
-                    }
-                });
-            }
-            
-            // Add the UI to the Extensions tab
-            const addUIInterval = setInterval(() => {
-                const extensionsContent = document.getElementById('extensions_content');
-                if (extensionsContent) {
-                    clearInterval(addUIInterval);
-                    renderExtensionUI();
-                }
-            }, 500);
-            
-            // Listen for world info changes
-            document.addEventListener('worldInfoUpdate', () => {
-                refreshLorebookList();
-            });
+            console.log('[Lorebook Profiles] SillyTavern detected, initializing...');
+            initialize();
         }
     }, 100);
     
     // Stop trying after 10 seconds
     setTimeout(() => clearInterval(initInterval), 10000);
+    
+    // Expose a global function to manually reload the extension
+    window.LorebookProfilesExtension.reload = function() {
+        console.log('[Lorebook Profiles] Manual reload triggered');
+        const container = document.getElementById('lorebook-profiles-container');
+        if (container) {
+            container.remove();
+        }
+        window.LorebookProfilesExtension.initialized = false;
+        initialize();
+    };
+    
+    // Expose a global function to refresh the UI
+    window.LorebookProfilesExtension.refresh = function() {
+        console.log('[Lorebook Profiles] UI refresh triggered');
+        if (window.LorebookProfilesExtension.initialized) {
+            refreshUI();
+        } else {
+            console.log('[Lorebook Profiles] Extension not initialized, call reload() first');
+        }
+    };
+    
+    console.log('[Lorebook Profiles] Extension script loaded');
 })();
 
 /**
