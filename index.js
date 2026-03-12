@@ -99,7 +99,10 @@ function getActiveLorebooks() {
  * Activate a profile by name using /world slash commands
  */
 async function activateProfileByName(profileName) {
-    const profile = settings.profiles[profileName];
+    // Get executeSlashCommands from SillyTavern context at call time
+    const { executeSlashCommands, extensionSettings: ctxExtensionSettings } = SillyTavern.getContext();
+    
+    const profile = ctxExtensionSettings['lorebook_profiles'].profiles[profileName];
     
     if (!profile) {
         alert(`Profile "${profileName}" not found`);
@@ -107,11 +110,8 @@ async function activateProfileByName(profileName) {
     }
     
     try {
-        // Import executeSlashCommands from SillyTavern
-        const { executeSlashCommands } = await import('../../../../script.js');
-        
         // First, deactivate all lorebooks
-        await executeSlashCommands('/world silent=true \n');
+        await executeSlashCommands('/world none');
         
         // Get all available lorebooks to match IDs with names
         const sel = document.querySelector('#world_editor_select');
@@ -135,7 +135,7 @@ async function activateProfileByName(profileName) {
             const lorebookName = lorebookMap.get(String(lorebookId));
             
             if (lorebookName) {
-                await executeSlashCommands(`/world silent=true ${lorebookName}`);
+                await executeSlashCommands(`/world ${lorebookName}`);
             }
         }
         
