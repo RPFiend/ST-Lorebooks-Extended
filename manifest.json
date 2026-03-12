@@ -1,0 +1,11 @@
+{
+    "display_name": "Lorebook Profiles",
+    "description": "Save and activate profiles of lorebook configurations for quick switching between different character setups.",
+    "name": "lorebook-profiles",
+    "version": "1.0.0",
+    "author": "Your Name",
+    "website": "",
+    "scripts": [
+        "index.js"
+    ]
+}
