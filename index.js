@@ -1,25 +1,23 @@
 // Lorebook Profiles Extension for SillyTavern
 // Allows saving and activating profiles of lorebook configurations
 
+import { eventSource, event_types, saveSettingsDebounced } from '../../../../script.js';
+import { extension_settings } from '../../../extensions.js';
 import { executeSlashCommands } from '../../../slash-commands.js';
 
 const MODULE_NAME = 'lorebook_profiles';
 
-// Get SillyTavern API
-const context = SillyTavern.getContext();
-const { extensionSettings, saveSettingsDebounced, eventSource, event_types } = context;
-
-// Initialize settings if not exists
-if (!extensionSettings[MODULE_NAME]) {
-    extensionSettings[MODULE_NAME] = {
+// Initialize settings from extension_settings
+if (!extension_settings[MODULE_NAME]) {
+    extension_settings[MODULE_NAME] = {
         profiles: {}
     };
 }
 
 // Settings structure
-let settings = extensionSettings[MODULE_NAME];
+const settings = extension_settings[MODULE_NAME];
 
-// Profile data structure: { profileName: { lorebooks: [id1, id2, ...] }
+// Profile data structure: { profileName: { lorebooks: [name1, name2, ...] }
 
 /**
  * Get HTML for extension UI
@@ -235,7 +233,6 @@ function getUIHTML() {
  */
 function getAvailableLorebooks() {
     try {
-        // Read from the World Info dropdown element
         const sel = document.querySelector('#world_editor_select');
         
         if (!sel) {
@@ -243,7 +240,6 @@ function getAvailableLorebooks() {
             return [];
         }
         
-        // Check if dropdown has children
         if (!sel.children || sel.children.length === 0) {
             console.warn('[Lorebook Profiles] World Info dropdown has no options.');
             return [];
@@ -251,10 +247,10 @@ function getAvailableLorebooks() {
         
         console.log('[Lorebook Profiles] Found dropdown with', sel.children.length, 'options');
         
-        // Extract lorebook names from option elements
+        // Use exact pattern from WorldInfoPresets
         const bookNames = Array.from(sel.children).map(option => ({
-            id: option.value,
             name: option.textContent,
+            value: option.value,
             enabled: option.selected
         }));
         
@@ -264,14 +260,6 @@ function getAvailableLorebooks() {
         console.error('[Lorebook Profiles] Error getting lorebooks:', error);
         return [];
     }
-}
-
-/**
- * Get active lorebooks from SillyTavern's World Info dropdown
- */
-function getActiveLorebooks() {
-    const allLorebooks = getAvailableLorebooks();
-    return allLorebooks.filter(lb => lb.enabled);
 }
 
 /**
@@ -299,8 +287,8 @@ function refreshLorebookList() {
     
     container.innerHTML = lorebooks.map(lorebook => `
         <div class="lp-lorebook-item">
-            <input type="checkbox" id="lp-lb-${lorebook.id}" value="${lorebook.id}" ${lorebook.enabled ? 'checked' : ''}>
-            <label for="lp-lb-${lorebook.id}">${escapeHtml(lorebook.name)}</label>
+            <input type="checkbox" id="lp-lb-${lorebook.value}" value="${lorebook.name}" ${lorebook.enabled ? 'checked' : ''}>
+            <label for="lp-lb-${lorebook.value}">${escapeHtml(lorebook.name)}</label>
         </div>
     `).join('');
 }
@@ -343,7 +331,7 @@ function refreshSavedProfiles() {
     
     container.innerHTML = profileNames.map(name => {
         const profile = profiles[name];
-        const lorebookCount = profile.lorebooks ? profile.lorebooks.length : 0;
+        const lorebookCount = profile.worldList ? profile.worldList.length : 0;
         
         return `
             <div class="lp-saved-item">
@@ -389,13 +377,12 @@ function saveProfile() {
     const checkboxes = document.querySelectorAll('#lp-lorebook-items input[type="checkbox"]:checked');
     const selectedLorebooks = Array.from(checkboxes).map(cb => cb.value);
     
-    // Save the profile - store values as strings to match dropdown values
+    // Save profile using same structure as WorldInfoPresets
     settings.profiles[profileName] = {
-        lorebooks: selectedLorebooks,
-        createdAt: Date.now()
+        worldList: selectedLorebooks
     };
     
-    saveSettings();
+    saveSettingsDebounced();
     
     nameInput.value = '';
     
@@ -423,10 +410,7 @@ function activateProfile() {
  * Activate a profile by name using /world slash commands
  */
 async function activateProfileByName(profileName) {
-    // Get extensionSettings from SillyTavern context at call time
-    const { extensionSettings: ctxExtensionSettings } = SillyTavern.getContext();
-    
-    const profile = ctxExtensionSettings['lorebook_profiles'].profiles[profileName];
+    const profile = settings.profiles[profileName];
     
     if (!profile) {
         alert(`Profile "${profileName}" not found`);
@@ -434,39 +418,18 @@ async function activateProfileByName(profileName) {
     }
     
     try {
-        // First, deactivate all lorebooks
+        // Deactivate all lorebooks first - exact pattern from WorldInfoPresets
         await executeSlashCommands('/world silent=true {{newline}}');
         
-        // Get all available lorebooks to match IDs with names
-        const sel = document.querySelector('#world_editor_select');
-        
-        if (!sel) {
-            alert('Could not access World Info dropdown. Please open the World Info panel first.');
-            return;
-        }
-        
-        // Create a map of option values to text content
-        const lorebookMap = new Map();
-        Array.from(sel.children).forEach(option => {
-            lorebookMap.set(option.value, option.textContent);
-        });
-        
-        // Activate each lorebook in the profile one by one
-        const lorebooksToActivate = profile.lorebooks || [];
-        
-        for (const lorebookId of lorebooksToActivate) {
-            // Get the lorebook name from the map
-            const lorebookName = lorebookMap.get(String(lorebookId));
-            
-            if (lorebookName) {
-                await executeSlashCommands(`/world silent=true ${lorebookName}`);
-            }
+        // Activate each lorebook in the profile - exact pattern from WorldInfoPresets
+        for (const world of profile.worldList) {
+            await executeSlashCommands(`/world silent=true ${world}`);
         }
         
         // Refresh our UI to reflect the current state
         refreshLorebookList();
         
-        showToast(`Profile "${profileName}" activated with ${lorebooksToActivate.length} lorebook(s)`);
+        showToast(`Profile "${profileName}" activated with ${profile.worldList.length} lorebook(s)`);
     } catch (error) {
         console.error('[Lorebook Profiles] Error activating profile:', error);
         alert('Error activating profile: ' + error.message);
@@ -483,21 +446,11 @@ function deleteProfile(profileName) {
     
     delete settings.profiles[profileName];
     
-    saveSettings();
+    saveSettingsDebounced();
     
     refreshUI();
     
     showToast(`Profile "${profileName}" deleted`);
-}
-
-/**
- * Save settings
- */
-function saveSettings() {
-    extensionSettings[MODULE_NAME] = settings;
-    if (saveSettingsDebounced) {
-        saveSettingsDebounced();
-    }
 }
 
 /**
