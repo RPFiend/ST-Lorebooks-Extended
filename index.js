@@ -1,6 +1,8 @@
 // Lorebook Profiles Extension for SillyTavern
 // Allows saving and activating profiles of lorebook configurations
 
+import { executeSlashCommands } from '../../../slash-commands.js';
+
 const MODULE_NAME = 'lorebook_profiles';
 
 // Get SillyTavern API
@@ -37,6 +39,7 @@ function getUIHTML() {
                 </div>
                 <div class="lp-lorebook-list">
                     <h5>Select Active Lorebooks:</h5>
+                    <button id="lp-refresh-lorebooks" class="lp-btn lp-btn-secondary">Refresh List</button>
                     <div id="lp-lorebook-items"></div>
                 </div>
                 <button id="lp-save-profile" class="lp-btn lp-btn-primary">Save Profile</button>
@@ -57,29 +60,218 @@ function getUIHTML() {
                 <div id="lp-saved-list"></div>
             </div>
         </div>
+        
+        <style>
+            .lorebook-profiles-extension {
+                padding: 16px;
+                font-family: var(--font-main, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+            }
+            .lp-header h3 {
+                margin: 0 0 8px 0;
+                color: var(--SmartThemeBodyColor);
+            }
+            .lp-description {
+                margin: 0 0 16px 0;
+                color: var(--SmartThemeEmColor);
+                font-size: 0.9em;
+            }
+            .lp-create-section,
+            .lp-activate-section,
+            .lp-saved-section {
+                margin-bottom: 20px;
+                padding: 12px;
+                background: var(--black30a);
+                border-radius: 8px;
+            }
+            .lp-create-section h4,
+            .lp-activate-section h4,
+            .lp-saved-section h4 {
+                margin: 0 0 12px 0;
+                color: var(--SmartThemeBodyColor);
+            }
+            .lp-create-inputs {
+                margin-bottom: 12px;
+            }
+            #lp-profile-name {
+                width: 100%;
+                padding: 8px 12px;
+                border: 1px solid var(--SmartThemeBorderColor);
+                border-radius: 4px;
+                background: var(--black20a);
+                color: var(--SmartThemeBodyColor);
+                box-sizing: border-box;
+                font-size: 14px;
+            }
+            #lp-profile-name:focus {
+                outline: none;
+                border-color: var(--SmartThemeAccentColor);
+            }
+            .lp-lorebook-list {
+                margin-bottom: 12px;
+            }
+            .lp-lorebook-list h5 {
+                margin: 0 0 8px 0;
+                color: var(--SmartThemeBodyColor);
+                font-size: 0.9em;
+            }
+            #lp-lorebook-items {
+                max-height: 200px;
+                overflow-y: auto;
+                border: 1px solid var(--SmartThemeBorderColor);
+                border-radius: 4px;
+                padding: 8px;
+                background: var(--black20a);
+            }
+            .lp-lorebook-item {
+                display: flex;
+                align-items: center;
+                padding: 6px 8px;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+            .lp-lorebook-item:hover {
+                background: var(--black50a);
+            }
+            .lp-lorebook-item input[type="checkbox"] {
+                margin-right: 8px;
+                cursor: pointer;
+            }
+            .lp-lorebook-item label {
+                cursor: pointer;
+                flex: 1;
+                color: var(--SmartThemeBodyColor);
+            }
+            .lp-activate-inputs {
+                display: flex;
+                gap: 8px;
+            }
+            #lp-profile-select {
+                flex: 1;
+                padding: 8px 12px;
+                border: 1px solid var(--SmartThemeBorderColor);
+                border-radius: 4px;
+                background: var(--black20a);
+                color: var(--SmartThemeBodyColor);
+                cursor: pointer;
+            }
+            .lp-btn {
+                padding: 8px 16px;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-weight: 500;
+                transition: all 0.2s;
+            }
+            .lp-btn:hover {
+                opacity: 0.9;
+                transform: translateY(-1px);
+            }
+            .lp-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+                transform: none;
+            }
+            .lp-btn-primary {
+                background: var(--SmartThemeAccentColor);
+                color: var(--SmartThemeBodyColor);
+            }
+            .lp-btn-secondary {
+                background: #6c757d;
+                color: white;
+                margin-bottom: 8px;
+            }
+            .lp-btn-success {
+                background: #28a745;
+                color: white;
+            }
+            .lp-btn-danger {
+                background: #dc3545;
+                color: white;
+            }
+            #lp-saved-list {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            .lp-saved-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 10px 12px;
+                background: var(--black20a);
+                border-radius: 4px;
+                border: 1px solid var(--SmartThemeBorderColor);
+            }
+            .lp-saved-item-name {
+                font-weight: 500;
+                color: var(--SmartThemeBodyColor);
+            }
+            .lp-saved-item-count {
+                color: var(--SmartThemeEmColor);
+                font-size: 0.85em;
+                margin-left: 8px;
+            }
+            .lp-saved-item-actions {
+                display: flex;
+                gap: 6px;
+            }
+            .lp-saved-item-actions .lp-btn {
+                padding: 6px 12px;
+                font-size: 0.85em;
+            }
+            .lp-empty-state {
+                color: var(--SmartThemeEmColor);
+                font-style: italic;
+                padding: 12px;
+                text-align: center;
+            }
+        </style>
     `;
 }
 
 /**
- * Get all active lorebooks from SillyTavern
+ * Get all available lorebooks from SillyTavern's World Info dropdown
  */
-function getActiveLorebooks() {
+function getAvailableLorebooks() {
     try {
-        const ctx = SillyTavern.getContext();
+        // Read from the World Info dropdown element
+        const sel = document.querySelector('#world_editor_select');
         
-        if (ctx.worldInfo && ctx.worldInfo.entries) {
-            return Object.values(ctx.worldInfo.entries).map(entry => ({
-                id: entry.uid,
-                name: entry.name || `Lorebook Entry ${entry.uid}`,
-                enabled: entry.enabled
-            }));
+        if (!sel) {
+            console.warn('[Lorebook Profiles] World Info dropdown not found. Make sure World Info panel is open.');
+            return [];
         }
         
-        return [];
+        // Check if dropdown has children
+        if (!sel.children || sel.children.length === 0) {
+            console.warn('[Lorebook Profiles] World Info dropdown has no options.');
+            return [];
+        }
+        
+        console.log('[Lorebook Profiles] Found dropdown with', sel.children.length, 'options');
+        
+        // Extract lorebook names from option elements
+        const bookNames = Array.from(sel.children).map(option => ({
+            id: option.value,
+            name: option.textContent,
+            enabled: option.selected
+        }));
+        
+        console.log('[Lorebook Profiles] Lorebooks loaded:', bookNames);
+        return bookNames;
     } catch (error) {
         console.error('[Lorebook Profiles] Error getting lorebooks:', error);
         return [];
     }
+}
+
+/**
+ * Get active lorebooks from SillyTavern's World Info dropdown
+ */
+function getActiveLorebooks() {
+    const allLorebooks = getAvailableLorebooks();
+    return allLorebooks.filter(lb => lb.enabled);
 }
 
 /**
@@ -98,10 +290,10 @@ function refreshLorebookList() {
     const container = document.getElementById('lp-lorebook-items');
     if (!container) return;
     
-    const lorebooks = getActiveLorebooks();
+    const lorebooks = getAvailableLorebooks();
     
     if (lorebooks.length === 0) {
-        container.innerHTML = '<div class="lp-empty-state">No lorebooks found</div>';
+        container.innerHTML = '<div class="lp-empty-state">No lorebooks found. Please open World Info panel first, then click "Refresh List".</div>';
         return;
     }
     
@@ -195,9 +387,9 @@ function saveProfile() {
     }
     
     const checkboxes = document.querySelectorAll('#lp-lorebook-items input[type="checkbox"]:checked');
-    const selectedLorebooks = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    const selectedLorebooks = Array.from(checkboxes).map(cb => cb.value);
     
-    // Save the profile
+    // Save the profile - store values as strings to match dropdown values
     settings.profiles[profileName] = {
         lorebooks: selectedLorebooks,
         createdAt: Date.now()
@@ -228,10 +420,13 @@ function activateProfile() {
 }
 
 /**
- * Activate a profile by name
+ * Activate a profile by name using /world slash commands
  */
-function activateProfileByName(profileName) {
-    const profile = settings.profiles[profileName];
+async function activateProfileByName(profileName) {
+    // Get extensionSettings from SillyTavern context at call time
+    const { extensionSettings: ctxExtensionSettings } = SillyTavern.getContext();
+    
+    const profile = ctxExtensionSettings['lorebook_profiles'].profiles[profileName];
     
     if (!profile) {
         alert(`Profile "${profileName}" not found`);
@@ -239,32 +434,39 @@ function activateProfileByName(profileName) {
     }
     
     try {
-        const ctx = SillyTavern.getContext();
+        // First, deactivate all lorebooks
+        await executeSlashCommands('/world silent=true {{newline}}');
         
-        if (ctx.worldInfo && ctx.worldInfo.entries) {
-            const entries = Object.values(ctx.worldInfo.entries);
-            const selectedIds = new Set(profile.lorebooks || []);
-            
-            entries.forEach(entry => {
-                const isSelected = selectedIds.has(entry.uid);
-                entry.enabled = isSelected;
-                
-                const toggleElement = document.querySelector(`[data-uid="${entry.uid}"] .world_entry_activation_toggle`);
-                if (toggleElement) {
-                    toggleElement.checked = isSelected;
-                }
-            });
-            
-            if (eventSource) {
-                eventSource.emit('refreshWorldInfo');
-            }
-            
-            refreshLorebookList();
-            
-            showToast(`Profile "${profileName}" activated`);
-        } else {
-            alert('Could not access lorebook data. Please try again.');
+        // Get all available lorebooks to match IDs with names
+        const sel = document.querySelector('#world_editor_select');
+        
+        if (!sel) {
+            alert('Could not access World Info dropdown. Please open the World Info panel first.');
+            return;
         }
+        
+        // Create a map of option values to text content
+        const lorebookMap = new Map();
+        Array.from(sel.children).forEach(option => {
+            lorebookMap.set(option.value, option.textContent);
+        });
+        
+        // Activate each lorebook in the profile one by one
+        const lorebooksToActivate = profile.lorebooks || [];
+        
+        for (const lorebookId of lorebooksToActivate) {
+            // Get the lorebook name from the map
+            const lorebookName = lorebookMap.get(String(lorebookId));
+            
+            if (lorebookName) {
+                await executeSlashCommands(`/world silent=true ${lorebookName}`);
+            }
+        }
+        
+        // Refresh our UI to reflect the current state
+        refreshLorebookList();
+        
+        showToast(`Profile "${profileName}" activated with ${lorebooksToActivate.length} lorebook(s)`);
     } catch (error) {
         console.error('[Lorebook Profiles] Error activating profile:', error);
         alert('Error activating profile: ' + error.message);
@@ -304,6 +506,7 @@ function saveSettings() {
 function attachEventListeners() {
     const saveButton = document.getElementById('lp-save-profile');
     const activateButton = document.getElementById('lp-activate-profile');
+    const refreshButton = document.getElementById('lp-refresh-lorebooks');
     
     if (saveButton) {
         saveButton.addEventListener('click', saveProfile);
@@ -311,6 +514,10 @@ function attachEventListeners() {
     
     if (activateButton) {
         activateButton.addEventListener('click', activateProfile);
+    }
+    
+    if (refreshButton) {
+        refreshButton.addEventListener('click', refreshLorebookList);
     }
 }
 
