@@ -1,6 +1,7 @@
 #  SillyTavern Extension - Lorebook Profiles
 
 Save and activate named lorebook combinations with one click.
+
 Instead of manually toggling lorebooks every time you switch characters
 or scenarios, you create a profile once and apply it instantly.
 
@@ -23,4 +24,4 @@ All lorebooks in the profile turn on; everything else turns off.
 
 - Profiles persist across restarts via SillyTavern's built-in settings
 ---
-*Created for the SillyTavern community.*
+*Created for SillyTavern, something near and dear to me.*
