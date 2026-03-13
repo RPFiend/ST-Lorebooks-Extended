@@ -1,66 +1,11 @@
 // Lorebook Profiles Extension for SillyTavern
 // Allows saving and activating profiles of lorebook configurations
 
-import { executeSlashCommands } from '../../../slash-commands.js';
-
 const MODULE_NAME = 'lorebook_profiles';
 
 // Get SillyTavern API
 const context = SillyTavern.getContext();
 const { extensionSettings, saveSettingsDebounced, eventSource, event_types } = context;
-/**
- * Activate a profile by name using /world slash commands
- */
-async function activateProfileByName(profileName) {
-    // Get extensionSettings from SillyTavern context at call time
-    const { extensionSettings: ctxExtensionSettings } = SillyTavern.getContext();
-    
-    const profile = ctxExtensionSettings['lorebook_profiles'].profiles[profileName];
-    
-    if (!profile) {
-        alert(`Profile "${profileName}" not found`);
-        return;
-    }
-    
-    try {
-        // First, deactivate all lorebooks
-        await executeSlashCommands('/world silent=true {{newline}}');
-        
-        // Get all available lorebooks to match IDs with names
-        const sel = document.querySelector('#world_editor_select');
-        
-        if (!sel) {
-            alert('Could not access World Info dropdown. Please open the World Info panel first.');
-            return;
-        }
-        
-        // Create a map of option values to text content
-        const lorebookMap = new Map();
-        Array.from(sel.children).forEach(option => {
-            lorebookMap.set(option.value, option.textContent);
-        });
-        
-        // Activate each lorebook in the profile one by one
-        const lorebooksToActivate = profile.lorebooks || [];
-        
-        for (const lorebookId of lorebooksToActivate) {
-            // Get the lorebook name from the map
-            const lorebookName = lorebookMap.get(String(lorebookId));
-            
-            if (lorebookName) {
-                await executeSlashCommands(`/world silent=true ${lorebookName}`);
-            }
-        }
-        
-        // Refresh our UI to reflect the current state
-        refreshLorebookList();
-        
-        showToast(`Profile "${profileName}" activated with ${lorebooksToActivate.length} lorebook(s)`);
-    } catch (error) {
-        console.error('[Lorebook Profiles] Error activating profile:', error);
-        alert('Error activating profile: ' + error.message);
-    }
-}
 
 // Initialize settings if not exists
 if (!extensionSettings[MODULE_NAME]) {
@@ -72,7 +17,7 @@ if (!extensionSettings[MODULE_NAME]) {
 // Settings structure
 let settings = extensionSettings[MODULE_NAME];
 
-// Profile data structure: { profileName: { lorebooks: [id1, id2, ...] } }
+// Profile data structure: { profileName: { lorebooks: [id1, id2, ...] }
 
 /**
  * Get HTML for extension UI
@@ -116,99 +61,25 @@ function getUIHTML() {
 }
 
 /**
- * Get all available lorebooks from SillyTavern's World Info dropdown
+ * Get all active lorebooks from SillyTavern
  */
-function getAvailableLorebooks() {
+function getActiveLorebooks() {
     try {
-        // Try to read from the World Info dropdown element
-        const sel = document.querySelector('#world_editor_select');
+        const ctx = SillyTavern.getContext();
         
-        if (!sel) {
-            console.warn('[Lorebook Profiles] World Info dropdown not found. User may need to open the World Info panel first.');
-            return [];
+        if (ctx.worldInfo && ctx.worldInfo.entries) {
+            return Object.values(ctx.worldInfo.entries).map(entry => ({
+                id: entry.uid,
+                name: entry.name || `Lorebook Entry ${entry.uid}`,
+                enabled: entry.enabled
+            }));
         }
         
-        // Extract lorebook names from option elements
-        // Filter out options with empty values or text starting with ---
-        const bookNames = Array.from(sel.children)
-            .map(option => ({
-                id: option.value,
-                name: option.textContent,
-                enabled: option.selected // Check if this lorebook is currently active
-            }))
-            .filter(it => it.value && !it.textContent.trim().startsWith('---'));
-        
-        return bookNames;
+        return [];
     } catch (error) {
         console.error('[Lorebook Profiles] Error getting lorebooks:', error);
         return [];
     }
-}
-
-/**
- * Get active lorebooks from SillyTavern's World Info dropdown
- * Returns the selected (active) lorebooks
- */
-function getActiveLorebooks() {
-    const allLorebooks = getAvailableLorebooks();
-    return allLorebooks.filter(lb => lb.enabled);
-}
-
-/**
- * Refresh lorebook selection list
- */
-function refreshLorebookList() {
-    const container = document.getElementById('lp-lorebook-items');
-    if (!container) return;
-    
-    const lorebooks = getAvailableLorebooks();
-    
-    if (lorebooks.length === 0) {
-        container.innerHTML = '<div class="lp-empty-state">No lorebooks found. Please open the World Info panel first.</div>';
-        return;
-    }
-    
-    container.innerHTML = lorebooks.map(lorebook => `
-        <div class="lp-lorebook-item">
-            <input type="checkbox" id="lp-lb-${lorebook.id}" value="${lorebook.id}" ${lorebook.enabled ? 'checked' : ''}>
-            <label for="lp-lb-${lorebook.id}">${escapeHtml(lorebook.name)}</label>
-        </div>
-    `).join('');
-}
-/**
- * Save a new profile
- */
-function saveProfile() {
-    const nameInput = document.getElementById('lp-profile-name');
-    const profileName = nameInput.value.trim();
-    
-    if (!profileName) {
-        alert('Please enter a profile name');
-        return;
-    }
-    
-    if (settings.profiles[profileName]) {
-        if (!confirm(`A profile named "${profileName}" already exists. Overwrite it?`)) {
-            return;
-        }
-    }
-    
-    const checkboxes = document.querySelectorAll('#lp-lorebook-items input[type="checkbox"]:checked');
-    const selectedLorebooks = Array.from(checkboxes).map(cb => cb.value);
-    
-    // Save the profile - store values as strings to match dropdown values
-    settings.profiles[profileName] = {
-        lorebooks: selectedLorebooks,
-        createdAt: Date.now()
-    };
-    
-    saveSettings();
-    
-    nameInput.value = '';
-    
-    refreshUI();
-    
-    showToast(`Profile "${profileName}" saved successfully`);
 }
 
 /**
@@ -218,6 +89,28 @@ function refreshUI() {
     refreshLorebookList();
     refreshProfileDropdown();
     refreshSavedProfiles();
+}
+
+/**
+ * Refresh lorebook selection list
+ */
+function refreshLorebookList() {
+    const container = document.getElementById('lp-lorebook-items');
+    if (!container) return;
+    
+    const lorebooks = getActiveLorebooks();
+    
+    if (lorebooks.length === 0) {
+        container.innerHTML = '<div class="lp-empty-state">No lorebooks found</div>';
+        return;
+    }
+    
+    container.innerHTML = lorebooks.map(lorebook => `
+        <div class="lp-lorebook-item">
+            <input type="checkbox" id="lp-lb-${lorebook.id}" value="${lorebook.id}" ${lorebook.enabled ? 'checked' : ''}>
+            <label for="lp-lb-${lorebook.id}">${escapeHtml(lorebook.name)}</label>
+        </div>
+    `).join('');
 }
 
 /**
@@ -284,6 +177,42 @@ function refreshSavedProfiles() {
 }
 
 /**
+ * Save a new profile
+ */
+function saveProfile() {
+    const nameInput = document.getElementById('lp-profile-name');
+    const profileName = nameInput.value.trim();
+    
+    if (!profileName) {
+        alert('Please enter a profile name');
+        return;
+    }
+    
+    if (settings.profiles[profileName]) {
+        if (!confirm(`A profile named "${profileName}" already exists. Overwrite it?`)) {
+            return;
+        }
+    }
+    
+    const checkboxes = document.querySelectorAll('#lp-lorebook-items input[type="checkbox"]:checked');
+    const selectedLorebooks = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    
+    // Save the profile
+    settings.profiles[profileName] = {
+        lorebooks: selectedLorebooks,
+        createdAt: Date.now()
+    };
+    
+    saveSettings();
+    
+    nameInput.value = '';
+    
+    refreshUI();
+    
+    showToast(`Profile "${profileName}" saved successfully`);
+}
+
+/**
  * Activate a profile from the dropdown
  */
 function activateProfile() {
@@ -296,6 +225,50 @@ function activateProfile() {
     }
     
     activateProfileByName(profileName);
+}
+
+/**
+ * Activate a profile by name
+ */
+function activateProfileByName(profileName) {
+    const profile = settings.profiles[profileName];
+    
+    if (!profile) {
+        alert(`Profile "${profileName}" not found`);
+        return;
+    }
+    
+    try {
+        const ctx = SillyTavern.getContext();
+        
+        if (ctx.worldInfo && ctx.worldInfo.entries) {
+            const entries = Object.values(ctx.worldInfo.entries);
+            const selectedIds = new Set(profile.lorebooks || []);
+            
+            entries.forEach(entry => {
+                const isSelected = selectedIds.has(entry.uid);
+                entry.enabled = isSelected;
+                
+                const toggleElement = document.querySelector(`[data-uid="${entry.uid}"] .world_entry_activation_toggle`);
+                if (toggleElement) {
+                    toggleElement.checked = isSelected;
+                }
+            });
+            
+            if (eventSource) {
+                eventSource.emit('refreshWorldInfo');
+            }
+            
+            refreshLorebookList();
+            
+            showToast(`Profile "${profileName}" activated`);
+        } else {
+            alert('Could not access lorebook data. Please try again.');
+        }
+    } catch (error) {
+        console.error('[Lorebook Profiles] Error activating profile:', error);
+        alert('Error activating profile: ' + error.message);
+    }
 }
 
 /**
