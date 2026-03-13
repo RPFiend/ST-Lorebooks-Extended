@@ -30,32 +30,28 @@ function getUIHTML() {
                 <p class="lp-description">Save and manage lorebook configurations</p>
             </div>
             
-            <div class="lp-create-section">
-                <h4>Create New Profile</h4>
-                <div class="lp-create-inputs">
-                    <input type="text" id="lp-profile-name" placeholder="Enter profile name..." maxlength="50">
-                </div>
-                <div class="lp-lorebook-list">
-                    <h5>Select Active Lorebooks:</h5>
-                    <button id="lp-refresh-lorebooks" class="lp-btn lp-btn-secondary">Refresh List</button>
-                    <div id="lp-lorebook-items"></div>
-                </div>
-                <button id="lp-save-profile" class="lp-btn lp-btn-primary">Save Profile</button>
-            </div>
-            
-            <div class="lp-activate-section">
-                <h4>Activate Profile</h4>
-                <div class="lp-activate-inputs">
-                    <select id="lp-profile-select">
-                        <option value="">-- Select Profile --</option>
-                    </select>
-                    <button id="lp-activate-profile" class="lp-btn lp-btn-success">Activate</button>
-                </div>
-            </div>
-            
+            <!-- Section 1: Saved Profiles (always visible) -->
             <div class="lp-saved-section">
                 <h4>Saved Profiles</h4>
                 <div id="lp-saved-list"></div>
+            </div>
+            
+            <!-- Section 2: Create New Profile (collapsed by default) -->
+            <div class="lp-create-section">
+                <button id="lp-toggle-create" class="lp-btn lp-btn-secondary lp-toggle-create">
+                    + New Profile
+                </button>
+                <div id="lp-create-form" class="lp-create-form hidden">
+                    <div class="lp-create-inputs">
+                        <input type="text" id="lp-profile-name" placeholder="Enter profile name..." maxlength="50">
+                    </div>
+                    <div class="lp-lorebook-list">
+                        <h5>Select Active Lorebooks:</h5>
+                        <button id="lp-refresh-lorebooks" class="lp-btn lp-btn-small">Refresh List</button>
+                        <div id="lp-lorebook-items"></div>
+                    </div>
+                    <button id="lp-save-profile" class="lp-btn lp-btn-primary">Save Profile</button>
+                </div>
             </div>
         </div>
         
@@ -73,19 +69,62 @@ function getUIHTML() {
                 color: var(--SmartThemeEmColor);
                 font-size: 0.9em;
             }
-            .lp-create-section,
-            .lp-activate-section,
             .lp-saved-section {
                 margin-bottom: 20px;
                 padding: 12px;
                 background: var(--black30a);
                 border-radius: 8px;
             }
-            .lp-create-section h4,
-            .lp-activate-section h4,
             .lp-saved-section h4 {
                 margin: 0 0 12px 0;
                 color: var(--SmartThemeBodyColor);
+            }
+            .lp-saved-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 10px 12px;
+                background: var(--black20a);
+                border-radius: 4px;
+                border: 1px solid var(--SmartThemeBorderColor);
+                margin-bottom: 8px;
+            }
+            .lp-saved-item-info {
+                flex: 1;
+            }
+            .lp-saved-item-name {
+                font-weight: 500;
+                color: var(--SmartThemeBodyColor);
+                font-size: 1em;
+            }
+            .lp-saved-item-subtitle {
+                color: var(--SmartThemeEmColor);
+                font-size: 0.85em;
+                margin-top: 4px;
+            }
+            .lp-saved-item-actions {
+                display: flex;
+                gap: 6px;
+            }
+            .lp-btn-small {
+                padding: 6px 12px;
+                font-size: 0.85em;
+            }
+            .lp-toggle-create {
+                width: 100%;
+                margin-bottom: 0;
+            }
+            .lp-create-section {
+                margin-bottom: 20px;
+            }
+            .lp-create-form {
+                margin-top: 12px;
+                padding: 12px;
+                background: var(--black30a);
+                border-radius: 8px;
+            }
+            .lp-create-form.hidden {
+                display: none;
             }
             .lp-create-inputs {
                 margin-bottom: 12px;
@@ -140,19 +179,6 @@ function getUIHTML() {
                 flex: 1;
                 color: var(--SmartThemeBodyColor);
             }
-            .lp-activate-inputs {
-                display: flex;
-                gap: 8px;
-            }
-            #lp-profile-select {
-                flex: 1;
-                padding: 8px 12px;
-                border: 1px solid var(--SmartThemeBorderColor);
-                border-radius: 4px;
-                background: var(--black20a);
-                color: var(--SmartThemeBodyColor);
-                cursor: pointer;
-            }
             .lp-btn {
                 padding: 8px 16px;
                 border: none;
@@ -177,7 +203,6 @@ function getUIHTML() {
             .lp-btn-secondary {
                 background: #6c757d;
                 color: white;
-                margin-bottom: 8px;
             }
             .lp-btn-success {
                 background: #28a745;
@@ -186,37 +211,6 @@ function getUIHTML() {
             .lp-btn-danger {
                 background: #dc3545;
                 color: white;
-            }
-            #lp-saved-list {
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-            }
-            .lp-saved-item {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 10px 12px;
-                background: var(--black20a);
-                border-radius: 4px;
-                border: 1px solid var(--SmartThemeBorderColor);
-            }
-            .lp-saved-item-name {
-                font-weight: 500;
-                color: var(--SmartThemeBodyColor);
-            }
-            .lp-saved-item-count {
-                color: var(--SmartThemeEmColor);
-                font-size: 0.85em;
-                margin-left: 8px;
-            }
-            .lp-saved-item-actions {
-                display: flex;
-                gap: 6px;
-            }
-            .lp-saved-item-actions .lp-btn {
-                padding: 6px 12px;
-                font-size: 0.85em;
             }
             .lp-empty-state {
                 color: var(--SmartThemeEmColor);
@@ -247,12 +241,14 @@ function getAvailableLorebooks() {
         
         console.log('[Lorebook Profiles] Found dropdown with', sel.children.length, 'options');
         
-        // Use exact pattern from WorldInfoPresets
-        const bookNames = Array.from(sel.children).map(option => ({
-            name: option.textContent,
-            value: option.value,
-            enabled: option.selected
-        }));
+        // Filter out blank or --- entries
+        const bookNames = Array.from(sel.children)
+            .map(option => ({
+                name: option.textContent,
+                value: option.value,
+                enabled: option.selected
+            }))
+            .filter(book => book.value && !book.name.trim().startsWith('---'));
         
         console.log('[Lorebook Profiles] Lorebooks loaded:', bookNames);
         return bookNames;
@@ -263,12 +259,70 @@ function getAvailableLorebooks() {
 }
 
 /**
+ * Toggle create form visibility
+ */
+function toggleCreateForm() {
+    const form = document.getElementById('lp-create-form');
+    const toggleBtn = document.getElementById('lp-toggle-create');
+    
+    if (form.classList.contains('hidden')) {
+        form.classList.remove('hidden');
+        toggleBtn.textContent = '- New Profile';
+    } else {
+        form.classList.add('hidden');
+        toggleBtn.textContent = '+ New Profile';
+    }
+}
+
+/**
  * Refresh all UI components
  */
 function refreshUI() {
-    refreshLorebookList();
-    refreshProfileDropdown();
     refreshSavedProfiles();
+    refreshLorebookList();
+}
+
+/**
+ * Refresh saved profiles list
+ */
+function refreshSavedProfiles() {
+    const container = document.getElementById('lp-saved-list');
+    if (!container) return;
+    
+    const profiles = settings.profiles || {};
+    const profileNames = Object.keys(profiles).sort();
+    
+    if (profileNames.length === 0) {
+        container.innerHTML = '<div class="lp-empty-state">No profiles yet. Create one below.</div>';
+        return;
+    }
+    
+    container.innerHTML = profileNames.map(name => {
+        const profile = profiles[name];
+        const lorebookCount = profile.worldList ? profile.worldList.length : 0;
+        const lorebookNames = profile.worldList ? profile.worldList.join(', ') : '';
+        
+        return `
+            <div class="lp-saved-item">
+                <div class="lp-saved-item-info">
+                    <div class="lp-saved-item-name">${escapeHtml(name)}</div>
+                    <div class="lp-saved-item-subtitle">${escapeHtml(lorebookNames)}</div>
+                </div>
+                <div class="lp-saved-item-actions">
+                    <button class="lp-btn lp-btn-success lp-btn-small lp-activate-single" data-profile="${escapeHtml(name)}">Activate</button>
+                    <button class="lp-btn lp-btn-danger lp-btn-small lp-delete-profile" data-profile="${escapeHtml(name)}">✕</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.querySelectorAll('.lp-activate-single').forEach(btn => {
+        btn.addEventListener('click', () => activateProfileByName(btn.dataset.profile));
+    });
+    
+    container.querySelectorAll('.lp-delete-profile').forEach(btn => {
+        btn.addEventListener('click', () => deleteProfile(btn.dataset.profile));
+    });
 }
 
 /**
@@ -291,69 +345,6 @@ function refreshLorebookList() {
             <label for="lp-lb-${lorebook.value}">${escapeHtml(lorebook.name)}</label>
         </div>
     `).join('');
-}
-
-/**
- * Refresh profile dropdown
- */
-function refreshProfileDropdown() {
-    const select = document.getElementById('lp-profile-select');
-    if (!select) return;
-    
-    const profiles = settings.profiles || {};
-    const profileNames = Object.keys(profiles).sort();
-    
-    let html = '<option value="">-- Select Profile --</option>';
-    
-    if (profileNames.length > 0) {
-        html += profileNames.map(name => 
-            `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`
-        ).join('');
-    }
-    
-    select.innerHTML = html;
-}
-
-/**
- * Refresh saved profiles list
- */
-function refreshSavedProfiles() {
-    const container = document.getElementById('lp-saved-list');
-    if (!container) return;
-    
-    const profiles = settings.profiles || {};
-    const profileNames = Object.keys(profiles).sort();
-    
-    if (profileNames.length === 0) {
-        container.innerHTML = '<div class="lp-empty-state">No saved profiles</div>';
-        return;
-    }
-    
-    container.innerHTML = profileNames.map(name => {
-        const profile = profiles[name];
-        const lorebookCount = profile.worldList ? profile.worldList.length : 0;
-        
-        return `
-            <div class="lp-saved-item">
-                <div>
-                    <span class="lp-saved-item-name">${escapeHtml(name)}</span>
-                    <span class="lp-saved-item-count">(${lorebookCount} lorebooks)</span>
-                </div>
-                <div class="lp-saved-item-actions">
-                    <button class="lp-btn lp-btn-success lp-activate-single" data-profile="${escapeHtml(name)}">Activate</button>
-                    <button class="lp-btn lp-btn-danger lp-delete-profile" data-profile="${escapeHtml(name)}">Delete</button>
-                </div>
-            </div>
-        `;
-    }).join('');
-    
-    container.querySelectorAll('.lp-activate-single').forEach(btn => {
-        btn.addEventListener('click', () => activateProfileByName(btn.dataset.profile));
-    });
-    
-    container.querySelectorAll('.lp-delete-profile').forEach(btn => {
-        btn.addEventListener('click', () => deleteProfile(btn.dataset.profile));
-    });
 }
 
 /**
@@ -384,26 +375,15 @@ function saveProfile() {
     
     saveSettingsDebounced();
     
+    // Clear form and collapse it
     nameInput.value = '';
+    toggleCreateForm();
     
-    refreshUI();
+    // Refresh UI
+    refreshSavedProfiles();
+    refreshLorebookList();
     
     showToast(`Profile "${profileName}" saved successfully`);
-}
-
-/**
- * Activate a profile from the dropdown
- */
-function activateProfile() {
-    const select = document.getElementById('lp-profile-select');
-    const profileName = select.value;
-    
-    if (!profileName) {
-        alert('Please select a profile to activate');
-        return;
-    }
-    
-    activateProfileByName(profileName);
 }
 
 /**
@@ -426,7 +406,7 @@ async function activateProfileByName(profileName) {
             await executeSlashCommands(`/world silent=true ${world}`);
         }
         
-        // Refresh our UI to reflect the current state
+        // Refresh lorebook list to reflect current state
         refreshLorebookList();
         
         showToast(`Profile "${profileName}" activated with ${profile.worldList.length} lorebook(s)`);
@@ -448,7 +428,7 @@ function deleteProfile(profileName) {
     
     saveSettingsDebounced();
     
-    refreshUI();
+    refreshSavedProfiles();
     
     showToast(`Profile "${profileName}" deleted`);
 }
@@ -457,16 +437,16 @@ function deleteProfile(profileName) {
  * Attach event listeners to UI elements
  */
 function attachEventListeners() {
+    const toggleBtn = document.getElementById('lp-toggle-create');
     const saveButton = document.getElementById('lp-save-profile');
-    const activateButton = document.getElementById('lp-activate-profile');
     const refreshButton = document.getElementById('lp-refresh-lorebooks');
+    
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', toggleCreateForm);
+    }
     
     if (saveButton) {
         saveButton.addEventListener('click', saveProfile);
-    }
-    
-    if (activateButton) {
-        activateButton.addEventListener('click', activateProfile);
     }
     
     if (refreshButton) {
