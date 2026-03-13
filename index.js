@@ -129,11 +129,14 @@ function getAvailableLorebooks() {
         }
         
         // Extract lorebook names from option elements
-        const bookNames = Array.from(sel.children).map(option => ({
-            id: option.value,
-            name: option.textContent,
-            enabled: option.selected // Check if this lorebook is currently active
-        }));
+        // Filter out options with empty values or text starting with ---
+        const bookNames = Array.from(sel.children)
+            .map(option => ({
+                id: option.value,
+                name: option.textContent,
+                enabled: option.selected // Check if this lorebook is currently active
+            }))
+            .filter(it => it.value && !it.textContent.trim().startsWith('---'));
         
         return bookNames;
     } catch (error) {
