@@ -1,4 +1,4 @@
-#  SillyTavern Extension - Lorebook Profiles
+#  SillyTavern Lorebook Profiles Extension - LoreProfiles!
 
 Save and activate named lorebook combinations with one click.
 
