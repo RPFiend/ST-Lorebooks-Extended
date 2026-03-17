@@ -26,7 +26,7 @@ function getUIHTML() {
     return `
         <div class="lorebook-profiles-extension">
             <div class="lp-header">
-                <h3>Lorebook Profiles</h3>
+                <h3>LoreProfiles!</h3>
                 <p class="lp-description">Save and manage lorebook configurations</p>
             </div>
             
@@ -500,7 +500,7 @@ jQuery(async () => {
     const settingsHtml = `
         <div id="lorebook-profiles-settings" class="inline-drawer">
             <div class="inline-drawer-toggle inline-drawer-header">
-                <b>Lorebook Profiles</b>
+                <b>SillyTavern - LoreProfiles!</b>
                 <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
             </div>
             <div class="inline-drawer-content">
