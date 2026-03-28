@@ -1,4 +1,5 @@
-#  SillyTavern Lorebook Profiles Extension - LoreProfiles!
+# The Curse of Switching
+##  SillyTavern Lorebook Profiles Extension - LoreProfiles!
 
 Save and activate named lorebook combinations with one click.
 
